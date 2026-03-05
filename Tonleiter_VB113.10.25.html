@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content='\"light\"' name='\"color-scheme\"'/>
+<title>C‑Dur Lernspiele Gitarre</title>
+<style>
+    :root{
+      --bg:#0f0f0f;
+      --board1:#6a412c;
+      --board2:#55311f;
+      --label:#f0f0f0;
+      --accent:#e0b97d;
+      --shadow:rgba(0,0,0,.25);
+      --correct:#5ee178;
+      --wrong:#e15e5e;
+      --gold:#ffd27a;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:var(--bg);
+      color:var(--label);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      display:flex;align-items:center;justify-content:center;
+      min-height:100vh;
+    }
+    .card{
+      width:min(100%,960px);
+      background:#121212;
+      border-radius:16px;
+      box-shadow:0 12px 30px var(--shadow);
+      padding:24px;
+      position:relative;
+      overflow:hidden;
+    }
+    h1{text-align:center;color:var(--accent);margin-bottom:12px;}
+    p{text-align:center;margin-bottom:24px;font-size:1.1rem;line-height:1.6;}
+    .btn{
+      display:inline-block;
+      background:var(--accent);
+      color:#1b120c;
+      text-decoration:none;
+      font-weight:600;
+      padding:10px 28px;
+      border-radius:999px;
+      box-shadow:0 0 12px rgba(224,185,125,0.4);
+      transition:all 0.25s ease;
+      cursor:pointer;
+      margin:6px;
+    }
+    .btn:hover{background:#ffd89c;box-shadow:0 0 18px rgba(224,185,125,0.7);transform:scale(1.04);}
+    .center{text-align:center;margin-top:20px;}
+    .hidden{display:none;}
+    .subhint{
+      text-align:center;
+      color:#cfcfcf;
+      opacity:.9;
+      font-size:0.98rem;
+      margin-top:-6px;
+      margin-bottom:10px;
+    }
+
+    /* Versionsnummer (Startseite) */
+    .version{
+      position:absolute;
+      top:10px;
+      right:14px;
+      font-size:.9rem;
+      color:#cfcfcf;
+      opacity:.85;
+      user-select:none;
+    }
+
+    /* Fortschritt + Nachricht über Konfetti halten */
+    .progress, .message{
+      position:relative;
+      z-index:2;
+      text-shadow:0 1px 2px rgba(0,0,0,.6);
+    }
+    .progress{
+      text-align:center;
+      color:var(--accent);
+      font-weight:600;
+      margin-top:-10px;
+      margin-bottom:8px;
+      min-height:1.6em;
+    }
+    .progress small{ color:#cfcfcf; font-weight:500; margin-left:8px; }
+    .message{
+      text-align:center;
+      font-size:1.1rem;
+      margin-top:6px;
+      min-height:1.6em;
+      transition:color .2s ease, transform .2s ease;
+      color:var(--accent);
+      padding: 0 8px;
+    }
+    .message.good{ color: var(--correct); }
+    .message.bad{ color: var(--wrong); }
+
+    /* Noten-Animation */
+    @keyframes fadePop {
+      0% {opacity:0; transform:scale(0.6);}
+      60% {opacity:1; transform:scale(1.06);}
+      100% {opacity:1; transform:scale(1);}
+    }
+    .note-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:12px 0 20px;}
+    .note{
+      background:#333;color:#fff;border:2px solid var(--accent);
+      border-radius:50%;width:60px;height:60px;display:flex;align-items:center;justify-content:center;
+      font-size:1.1rem;cursor:pointer;transition:all .25s ease;opacity:0;
+    }
+    .note.appear{animation:fadePop 0.45s forwards;}
+    .note.correct{background:var(--correct);color:#1b120c;transform:scale(1.04);}
+    .note.wrong{background:var(--wrong);color:#fff;transform:scale(1.02);}
+    @keyframes shake {0%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}100%{transform:translateX(0)}}
+    .note.shake{ animation: shake .32s; }
+
+    /* Griffbrett – Tonleiter-Erklärung im eigenen (transparenten) Container */
+    .scale-info{
+      max-width: 92%;
+      margin: 0 auto 44px;   /* Abstand zum Griffbrett */
+      background: transparent;
+      border: none;
+      border-radius:12px;
+      padding:0;
+      box-shadow:none;
+    }
+    .scale-line{
+      text-align:center;
+      color:#ffe3b0;
+      font-size:1.25rem;
+      font-weight:700;
+      letter-spacing:0.08em;
+      margin:0 auto;
+    }
+    .scale-line .pill{
+      display:inline-block;
+      padding:8px 14px;
+      background:rgba(224,185,125,.12);
+      border:1px solid rgba(224,185,125,.35);
+      border-radius:999px;
+      box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .scale-line .half{
+      display:inline-block;
+      font-size:.85rem;
+      padding:1px 6px;
+      margin:0 6px;
+      border:1px dashed rgba(224,185,125,.55);
+      color:#ffe3b0;
+      border-radius:999px;
+      background:rgba(224,185,125,.08);
+      vertical-align:middle;
+      line-height:1.2;
+    }
+    .scale-line span{padding:0 4px;}
+
+    .wrap{display:grid;grid-template-columns:56px 1fr;align-items:center;width:100%;overflow:hidden;margin-top:8px;}
+    .labels{display:flex;flex-direction:column-reverse;justify-content:space-between;padding:10px 8px;height:240px;}
+    .label{display:flex;align-items:center;justify-content:center;}
+    /* Eingekreiste Saitenbuchstaben */
+    .label span{
+      /* base label style */
+      font-size:14px;color:var(--label);user-select:none;display:inline-flex;align-items:center;justify-content:center;
+      width:28px;height:28px;border:2px solid rgba(224,185,125,.55);border-radius:50%;
+      background:rgba(224,185,125,.08);
+      box-shadow:0 1px 3px rgba(0,0,0,.35) inset, 0 0 0 1px rgba(0,0,0,.25);
+      font-weight:700;line-height:1;
+    }
+    .label.clickable span{ cursor:pointer; box-shadow:0 0 0 1px rgba(224,185,125,.35), 0 2px 10px rgba(0,0,0,.25); }
+    .label.clickable span:hover{ background:rgba(224,185,125,.18); }
+    
+
+    .labels.right{display:none !important;}
+    .labels.left{align-items:flex-end}
+    .board{
+      position:relative;height:240px;border-radius:12px;overflow:hidden;
+      background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(0,0,0,.0)40%,rgba(0,0,0,.15)),
+        repeating-linear-gradient(10deg,rgba(255,255,255,.02)0 6px,rgba(0,0,0,.02)6px 12px),
+        linear-gradient(180deg,var(--board1),var(--board2));
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 12px 24px rgba(0,0,0,.35);
+    }
+    .nut{position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(180deg,#f0f0f0,#d0d0d0);box-shadow:1px 0 0 rgba(0,0,0,.35),0 0 8px rgba(0,0,0,.3) inset;z-index:6;}
+    .strings{position:relative;height:100%;padding:18px 0;display:flex;flex-direction:column-reverse;justify-content:space-between;z-index:2;}
+    .string{position:relative;border-radius:999px;background:linear-gradient(180deg,#f4f4f4,#a9a9a9);box-shadow:0 0 0 1px rgba(0,0,0,.3);}
+    .frets{position:absolute;inset:0;display:flex;z-index:3;pointer-events:none;}
+    .fret{position:relative;flex-shrink:0;}
+    .fret::after{content:"";position:absolute;top:0;bottom:0;right:0;width:3px;background:linear-gradient(180deg,#f2f4f7,#c9cdd2 45%,#b0b4b9 55%,#e8eaee);box-shadow:-1px 0 0 rgba(0,0,0,.45),1px 0 0 rgba(255,255,255,.1) inset;}
+
+    /* Marker-Overlay für interaktive Töne */
+    .markers{ position:absolute; inset:0; z-index:5; pointer-events:none; }
+    .marker{
+      position:absolute; width:28px; height:28px; border-radius:50%;
+      background:var(--accent); color:#1b120c; font-weight:800;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 4px 10px rgba(0,0,0,.35);
+      transform: translate(-50%,-50%);
+    }
+
+    .inlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#d9d9d9 60%,#bfbfbf);box-shadow:0 1px 2px rgba(0,0,0,.35);}
+
+    /* Konfetti (Sterne) – hinter Text */
+    .confetti{position:absolute; left:0; right:0; bottom:0; top:0; pointer-events:none; overflow:visible; z-index:0;}
+    .star{position:absolute; bottom:-10px; font-size:18px; color:var(--gold); text-shadow:0 0 8px rgba(224,185,125,.6); opacity:0; animation: floatUp linear forwards;}
+    @keyframes floatUp{0%{transform:translate(var(--x,0),0) scale(.9) rotate(0);opacity:0}10%{opacity:1}100%{transform:translate(calc(var(--x,0)+var(--dx,0)),-180px) scale(1) rotate(360deg);opacity:0}}
+
+    @media(max-width:560px){
+      .note{width:50px;height:50px;font-size:1rem;
+      .note-buttons{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; justify-content:flex-start; padding:0 8px 6px; scroll-snap-type:x mandatory; gap:10px;}
+      .note{width:44px;height:44px;flex:0 0 44px;scroll-snap-align:center;font-size:.95rem;}
+    }
+      .scale-line{font-size:1.1rem;}
+      .wrap{grid-template-columns:44px 1fr;}
+      .board{height:180px;}
+      .labels{height:180px;}
+      .label span{
+      /* base label style */font-size:12px;width:24px;height:24px;border-width:2px;}
+      .inlay{width:10px;height:10px;}
+      .scale-info{ margin: 0 8px 32px; padding:0; }
+    }
+  
+    .label.active span{
+      background: var(--accent);
+      color: #1b120c;
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(224,185,125,0.6);
+    }
+
+  
+@media(max-width:840px){
+  .note-buttons{
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: center;
+    padding: 0 8px 6px;
+    gap: 10px;
+  }
+  .note{
+    width: 48px; height: 48px;
+    flex: 0 0 48px;
+    font-size: .98rem;
+  }
+}
+
+  
+/* Overrides: No horizontal scroll for scale game buttons */
+@media(max-width:840px){
+  .note-buttons{flex-wrap:wrap; overflow-x:visible; justify-content:center; padding:0; scroll-snap-type:none;}
+  .note{flex:0 0 auto;}
+}
+@media(max-width:560px){
+  .note-buttons{flex-wrap:wrap; overflow-x:visible; justify-content:center; padding:0; scroll-snap-type:none;}
+  .note{width:50px; height:50px; font-size:1rem; flex:0 0 auto;}
+}
+
+  
+/* ===Spiel 1: Noten-Buttons immer in einer Reihe (ohne Scroll, ohne Umbruch) ===*/
+#scale-screen .note-buttons{
+  display:flex;
+  flex-wrap:nowrap !important;
+  justify-content:space-between;
+  gap:8px;
+  padding:0;
+  overflow:visible;
+}
+#scale-screen .note{
+  flex:0 0 auto;
+  width:calc((100% - (7 * 8px)) / 8);
+  aspect-ratio:1/1;
+  min-width:30px;
+  max-width:60px;
+}
+
+  
+/* Spiel 2: Tonleiter-Anzeige immer einzeilig */
+#fretboard-screen .scale-line{
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#fretboard-screen .scale-line .pill{
+  display: inline-flex;
+  align-items: center;
+  gap: .25em;
+  white-space: nowrap;
+}
+
+  
+/* Spiel 2: Tonleiter-Anzeige zweizeilig — Titel oben, Töne unten */
+#fretboard-screen .scale-line{ white-space: normal; }
+#fretboard-screen .scale-line .pill{
+  display: inline-block;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+#fretboard-screen .scale-line .pill b::after{
+  content: "\A";         /* Zeilenumbruch nach dem Titel */
+  white-space: pre;
+}
+
+  
+/* Spiel 4: Antwort-Buttons 1..12 im Raster */
+#fretboard-screen .answer-grid{
+  display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+}
+#fretboard-screen .answer-grid .ans{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:48px; height:48px; border-radius:999px;
+  border:1px solid rgba(224,185,125,.35);
+  background:rgba(224,185,125,.12);
+  font-weight:700; letter-spacing:.02em;
+  box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+  cursor:pointer; user-select:none;
+
+  /* Answers start off small && transparent so they can animate into view when
+     a new question is generated. The `.show` class added via JavaScript will
+     transition them to full size && opacity. This visual feedback helps
+     emphasize the refresh of answer options when the user clicks "Neue Frage". */
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+#fretboard-screen .answer-grid .ans.show{
+  opacity: 1;
+  transform: scale(1);
+}
+#fretboard-screen .answer-grid .ans:active{ transform: translateY(1px); }
+
+  
+/* Startseite: sanftes Einblenden */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#start-screen .fade-in {
+  opacity: 0;
+  animation: fadeInUp 600ms ease-out forwards;
+  will-change: opacity, transform;
+}
+#start-screen .delay-1 { animation-delay: .08s; }
+#start-screen .delay-2 { animation-delay: .16s; }
+#start-screen .delay-3 { animation-delay: .24s; }
+#start-screen .delay-4 { animation-delay: .32s; }
+
+@media (prefers-reduced-motion: reduce) {
+  #start-screen .fade-in { animation: none; opacity: 1; }
+}
+
+  
+/* Startscreen scale-line spacing */
+#start-screen .scale-line{
+  /* keep the C‑Dur scale on a single line even in the small view */
+  margin-top: 10px;
+  margin-bottom: 18px;
+  text-align:center;
+  /* prevent the final C from wrapping to a new row on narrow screens */
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+</style>
+<style id="marker-ring-override">
+#markers2 .marker{ box-shadow:0 0 0 2px rgba(0,0,0,.9), 0 1px 4px rgba(0,0,0,.2) !important; }
+</style>
+<style id="root-marker-style">
+#markers2 .marker.root{
+  background-color:#e53935;  /* roter Grundton */
+  color:#fff;
+  border:2px solid #000;     /* schwarzer Ring */
+}
+</style>
+<style id="chord-label-root-style">
+#labels-left2 .label.root span{
+  background-color:#e53935; /* rot wie Grundton */
+  color:#fff;
+  border-color:#000;
+  box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.35);
+}
+</style>
+<!-- Responsive adjustment for the C‑Dur scale on the start screen. On very narrow
+     viewports the long "C‑Dur‑Tonleiter" label and the list of notes don’t fit
+     on a single line. To avoid a horizontal scrollbar and ensure all notes remain
+     visible, split the label and notes across two lines and reduce the letter
+     spacing and font size. -->
+<style id="start-scale-small-view">
+@media (max-width: 560px) {
+  /* Let the title and the notes wrap naturally instead of overflowing */
+  #start-screen .scale-line {
+    white-space: normal;
+    overflow-x: visible;
+    line-height: 1.3;
+    letter-spacing: .02em;
+    font-size: 1rem;
+  }
+  /* Insert a newline after the "C‑Dur‑Tonleiter:" label on narrow screens */
+  #start-screen .scale-line b::after {
+    content: "\A";
+    white-space: pre;
+  }
+}
+</style>
+<style id="chord-actions-row-split-style">
+#chords-screen .chord-actions{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+#chords-screen .chord-actions .flex-break{ flex-basis:100%; height:0; }
+#btn-chord-c, #btn-quiz-hint{ order:0; }
+#btn-quiz-ch, #btn-quiz-ca, #btn-quiz-cg{ order:1; }
+</style>
+<style id="cg-variation-layout-fix">
+#board2{ margin-bottom: 14px; }
+#cg-variation-actions{ position: static; margin:10px 0 0; text-align:center; z-index:auto; }
+#badges2{ pointer-events:none; z-index:6; }
+</style>
+<style id="cg-variation-bigx-css">
+#badges2 .bigx{
+  position:absolute; transform:translate(-50%,-50%);
+  font-size:28px; line-height:1; font-weight:900;
+  color:#fff; text-shadow:0 0 4px rgba(0,0,0,.6), 0 1px 2px rgba(0,0,0,.45);
+  pointer-events:none;
+}
+@media (max-width:560px){
+  #badges2 .bigx{ font-size:24px; }
+}
+</style>
+<style id="cg-variation-msg-css">
+#cg-variation-actions .variation-msg{
+  display:inline-block;
+  margin-left:10px;
+  min-height:1.2em;
+  vertical-align:middle;
+}
+#cg-variation-actions .variation-msg.good{ color:#2e7d32; font-weight:600; }
+#cg-variation-actions .variation-msg.bad{ color:#b71c1c; font-weight:600; }
+</style>
+<style id="cg-variation-row-fix">
+#cg-variation-actions{
+  /* In der Grid‑Umgebung des Boards soll der Variationsbereich beide Spalten umfassen. */
+  grid-column: 1 / -1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding: 0 12px;
+  /* zentriere horizontal durch automatische Außenabstände */
+  margin: 12px auto 0 auto;
+  width:100%;
+  max-width:960px;
+  overflow:visible;
+}
+#cg-variation-actions .variation-msg{
+  display:block;
+  text-align:center;
+  white-space:normal;
+  min-height:1.2em;
+}
+#cg-variation-actions .variation-msg.good{ color:#2e7d32; font-weight:600; }
+#cg-variation-actions .variation-msg.bad{ color:#b71c1c; font-weight:600; }
+#chords-screen{ overflow:visible; }
+#chords-quiz-msg.hidden{ display:none; }
+</style>
+<style id="expiry-css">
+#expiry-warning{
+  display:none;
+  color:#ffffff;
+  background:#b30000;
+  padding:10px 12px;
+  border-radius:10px;
+  font-weight:700;
+  text-align:center;
+  margin:10px auto 14px;
+  max-width:960px;
+}
+#start-screen.expired #expiry-warning{ display:block; }
+/* Disable all menu buttons/links when expired */
+#start-screen.expired a.btn, 
+#start-screen.expired button.btn, 
+#start-screen.expired [role="button"]{
+  pointer-events:none;
+  opacity:0.55;
+  filter:grayscale(0.2);
+  cursor:not-allowed;
+}
+</style>
+<script id="app-config">
+// ✏️ Änderung hier: Ablaufdatum einstellen (ISO-Format YYYY-MM-DDTHH:mm:ss)
+window.APP_CONFIG = window.APP_CONFIG || {};
+window.APP_CONFIG.expiryCutoff = '2026-03-31T00:00:00';
+</script>
+<!-- Responsive marker repositioning for the fretboard (Spiel 2) -->
+<script id="fretboard-responsive-markers">
+(
+  function(){
+    // Wait until the DOM is ready before setting up observers
+    function setup(){
+      if (window._fretboardMarkerResize) return;
+      window._fretboardMarkerResize = true;
+      var board = document.getElementById('board');
+      var markersLayer = document.getElementById('markers');
+      if (!board || !markersLayer) return;
+      function repositionMarkers(){
+        // Guard against missing geometry helpers
+        if (typeof getBoardRect !== 'function' || typeof getCellRects !== 'function' || typeof getStringCenters !== 'function') return;
+        var boardRect = getBoardRect();
+        var cells = getCellRects();
+        var stringsY = getStringCenters();
+        var openOffset = 0;
+        if (cells && cells.length > 0) {
+          var firstCell = cells[0];
+          openOffset = (firstCell.left - boardRect.left) - 16;
+          if (openOffset < 0) openOffset = 0;
+        }
+        markersLayer.querySelectorAll('.marker').forEach(function(m){
+          var sAttr = m.getAttribute('data-s');
+          var fAttr = m.getAttribute('data-fret');
+          if (sAttr === null || fAttr === null) return;
+          var sIdx = parseInt(sAttr, 10);
+          var cellIdx = parseInt(fAttr, 10);
+          if (isNaN(sIdx) || isNaN(cellIdx)) return;
+          if (stringsY && stringsY[sIdx]) {
+            var sy = stringsY[sIdx].y;
+            m.style.top = sy + 'px';
+          }
+          if (cellIdx >= 0 && cells && cells[cellIdx]) {
+            var cx = (cells[cellIdx].left + cells[cellIdx].right)/2 - boardRect.left;
+            m.style.left = cx + 'px';
+          } else if (cellIdx < 0) {
+            m.style.left = openOffset + 'px';
+          }
+        });
+      }
+      if ('ResizeObserver' in window) {
+        var ro2 = new ResizeObserver(function(){ repositionMarkers(); });
+        ro2.observe(board);
+      } else {
+        window.addEventListener('resize', repositionMarkers);
+        window.addEventListener('orientationchange', repositionMarkers);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setup);
+    } else {
+      setup();
+    }
+  }
+)();
+</script>
+<style id="label-focus-fix">
+/* Prevent labels on the left of the fretboard (game 2) from losing bg on click/touch */
+#board2 .string-label:focus,
+#board2 .string-label:active,
+#board2 .open-label:focus,
+#board2 .open-label:active,
+#board2 .label:focus,
+#board2 .label:active,
+#board2 [data-role="label"]:focus,
+#board2 [data-role="label"]:active,
+#board2 [data-label]:focus,
+#board2 [data-label]:active,
+#board2 a:focus, #board2 a:active,
+#board2 button:focus, #board2 button:active {
+  /* Use transparent instead of inherit so the underlying span retains its styled background */
+  background-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* Remove mobile tap highlight inside the board area */
+#board2 a, #board2 button, #board2 [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+</style>
+<style id="label-focus-fix-board1">
+/* Keep label backgrounds stable on click/touch for game 2 */
+#board .label:focus,
+#board .label:active,
+#labels-left .label:focus,
+#labels-left .label:active,
+#board [data-role="label"]:focus,
+#board [data-role="label"]:active,
+#labels-left [data-role="label"]:focus,
+#labels-left [data-role="label"]:active {
+  /* Use transparent instead of inherit so the underlying span retains its styled background */
+  background-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+#board .label, #labels-left .label,
+#board [data-role="label"], #labels-left [data-role="label"] {
+  -webkit-tap-highlight-color: transparent;
+}
+</style>
+<style id="scale-label-active-css">
+#scale-screen .label,
+#scale-screen [data-role="label"]{
+  -webkit-tap-highlight-color: transparent;
+}
+#scale-screen .label:focus,
+#scale-screen .label:active,
+#scale-screen [data-role="label"]:focus,
+#scale-screen [data-role="label"]:active{
+  outline: none !important;
+  box-shadow: none !important;
+}
+</style>
+<!-- Fix for label highlight disappearing on click/touch (especially on mobile).
+         During :active or :focus states, explicitly apply the same styling as
+         the .label.active state to the inner span so the background colour does
+         not revert. -->
+<style id="label-active-focus-fix">
+      #labels-left .label:active span,
+      #labels-left .label:focus span,
+      #board .label:active span,
+      #board .label:focus span,
+      #labels-left [data-role="label"]:active span,
+      #labels-left [data-role="label"]:focus span,
+      #board [data-role="label"]:active span,
+      #board [data-role="label"]:focus span {
+        background: var(--accent) !important;
+        color: #1b120c !important;
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 12px rgba(224,185,125,0.6) !important;
+      }
+      /* Also target the span directly in its own active/focus state, because
+         some browsers apply :active to the <span> rather than the parent
+         .label. Without these selectors the inner circle could revert to
+         the default background when pressed. */
+      #labels-left .label span:active,
+      #labels-left .label span:focus,
+      #board .label span:active,
+      #board .label span:focus,
+      #labels-left [data-role="label"] span:active,
+      #labels-left [data-role="label"] span:focus,
+      #board [data-role="label"] span:active,
+      #board [data-role="label"] span:focus {
+        background: var(--accent) !important;
+        color: #1b120c !important;
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 12px rgba(224,185,125,0.6) !important;
+      }
+      /* Remove default tap highlight on mobile */
+      #labels-left .label,
+      #board .label,
+      #labels-left [data-role="label"],
+      #board [data-role="label"] {
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Override hover styling for the left labels: when the user hovers or presses
+         a label, always show the accent colour rather than the lighter hover
+         background. This prevents the background from appearing dark while the
+         mouse button is held down. */
+      #labels-left .label.clickable span:hover {
+        background: var(--accent) !important;
+        color: #1b120c !important;
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 12px rgba(224,185,125,0.6) !important;
+      }
+    </style>
+</head>
+<body>
+<div class="card">
+<div aria-hidden="true" class="confetti" id="confetti"></div>
+<!-- Startseite -->
+<section id="start-screen">
+<div class="version">© H.G. v113.10.25</div>
+<h1 class="fade-in delay-1">Hallo, ihr Lieben! 🎸</h1>
+<div id="expiry-warning">⚠️ <strong>Diese Version war bis Ende März 2026 gültig.</strong><br/>Bitte kontaktiert H.G. für eine aktuelle Version.</div>
+<p>Passend zu unserem Gitarrenkurs lernt ihr hier, die Töne auf dem Griffbrett bis zum 5. Bund zu finden. Ideal, um Akkorde wie C/H besser zu verstehen und gezielt nach den Tönen zu suchen.</p>
+<p class="tonleiter">🎵 <strong>C-Dur-Tonleiter:</strong><br/>C · D · E · F · G · A · H · C</p>
+<p>Jedes Spiel baut auf dem vorherigen auf. So lernt ihr Schritt für Schritt, wo die Töne auf dem Griffbrett liegen und miteinander verbunden sind.</p>
+<div class="center">
+<!-- Use button elements instead of anchor tags for better touch support on iOS -->
+<button class="btn" onclick="showGame('scale')" type="button">🎵 C‑Dur Tonleiter kennenlernen</button><br/>
+<button class="btn" onclick="showGame('fretboard')" type="button">🎸 C‑Dur auf dem Griffbrett</button><button class="btn" onclick="showGame('interval')" type="button">🔢 Halbtonschritte finden</button><button class="btn" onclick="showGame('find')" type="button">🔎 Ton auf Saite finden</button><br/>
+<br/>
+<br/>
+<!-- Neu: Spiel 5 – Grundton/ Basston finden -->
+<button class="btn" onclick="showGame('chords')" type="button">🎼 Grundton/ Basston finden</button>
+</div>
+</section>
+<!-- Spiel 1: Tonleiter kennenlernen -->
+<section class="hidden" id="scale-screen">
+<h1>🎵 C‑Dur Tonleiter</h1>
+<div class="progress" id="progress">Fortschritt: 0 / 8 richtig <small>· Fehler: 0</small></div>
+<p>Klicke die Töne in der <strong>richtigen Reihenfolge</strong> an!</p>
+<div class="note-buttons" id="notes"></div>
+<div class="message" id="message"></div>
+<div class="center"><a class="btn" onclick="resetScaleGame()">🔁 Neu starten</a></div>
+<div class="center"><a class="btn" onclick="showStart()">⟵ Zurück zur Startseite</a></div>
+</section>
+<!-- Spiel 2: Griffbrett -->
+<section class="hidden" id="fretboard-screen">
+<div class="scale-info">
+<div class="scale-line">
+<span class="pill">🎵 <b>C‑Dur‑Tonleiter:</b> <span>C</span>·<span>D</span>·<span>E</span><span class="half" title="Halbtonschritt">½</span><span>F</span>·<span>G</span>·<span>A</span>·<span>H</span><span class="half" title="Halbtonschritt">½</span><span>C</span></span>
+</div>
+</div>
+<div class="hidden" id="find-bar" style="text-align:center;margin:8px 0 6px;">
+<div style="display:inline-block;padding:8px 14px;border:1px solid rgba(224,185,125,.35);border-radius:999px;background:rgba(224,185,125,.08);box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);">
+<span id="find-task"><strong>Aufgabe:</strong> Finde den Ton <b>—</b> auf der <b>—</b>-Saite.</span>
+<button class="btn" onclick="startFindRound()" style="margin-left:8px">🎲 Neuer Ton</button>
+</div>
+<div class="message" id="find-feedback" style="margin-top:6px;min-height:1.2em;"></div>
+</div>
+<div class="hidden" id="interval-bar" style="text-align:center;margin:10px 0 8px;">
+<div style="display:inline-block;padding:8px 14px;border:1px solid rgba(224,185,125,.35);border-radius:999px;background:rgba(224,185,125,.08);box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);">
+<span id="interval-task"><strong>Frage:</strong> Wie viele Halbtonschritte liegen zwischen <b>—</b> und <b>—</b>?</span>
+<button class="btn" onclick="startIntervalRound()" style="margin-left:8px">🎲 Neue Frage</button>
+</div>
+<div class="answer-grid" id="interval-answers" style="margin-top:8px;"></div>
+<div class="message" id="interval-feedback" style="margin-top:6px;min-height:1.2em;"></div>
+</div>
+<h1>Griffbrett</h1>
+<p class="subhint"><em>Tipp: Jeder Bund macht den Ton um einen Halbton höher.<br/>Von E nach F und von H nach C ist es nur ein Halber Ton (siehe oben).</em></p>
+<p class="subhint">Saite anklicken, um die Töne anzuzeigen.</p>
+<div class="wrap">
+<div class="labels left" id="labels-left"></div>
+<div class="board" id="board">
+<div class="nut"></div>
+<div class="strings" id="strings"></div>
+<div class="frets" id="frets"></div>
+<div class="markers" id="markers"></div>
+</div>
+</div>
+<div class="center" id="all-notes-wrap" style="margin-top:16px;">
+<button class="btn" onclick="toggleAllNotes(event)">🎵 Alle Töne anzeigen</button>
+</div>
+<div class="center"><a class="btn" onclick="showStart()">⟵ Zurück zur Startseite</a></div>
+</section>
+<!-- Spiel 5: Grundton/ Basston finden -->
+<section class="hidden" id="chords-screen">
+<div class="chord-actions" style="margin:0 0 12px 0;display:flex;gap:8px;">
+<button aria-disabled="true" class="btn" data-static="true" id="btn-chord-c" style="pointer-events:none;" type="button">Beispiel C-Dur</button>
+<button class="btn" id="btn-quiz-ch" type="button">Frage: Grundton C/H</button> <button class="btn" id="btn-quiz-ca" type="button">Frage: Grundton C/A</button> <button class="btn" id="btn-quiz-cg" type="button">Frage: Grundton C/G</button> <button class="btn" id="btn-quiz-hint" title="Hinweis anzeigen" type="button">💡 Hinweis</button>
+</div>
+<div class="message" id="chords-quiz-msg" style="margin:6px 0 0; min-height:1.4em;"></div>
+<h1>🎼 Grundton/ Basston finden</h1>
+<div class="wrap">
+<!-- Saitenlabels (von tief nach hoch) -->
+<div class="labels left" id="labels-left2">
+<div class="label"><span>E</span></div>
+<div class="label"><span>A</span></div>
+<div class="label"><span>D</span></div>
+<div class="label"><span>g</span></div>
+<div class="label"><span>h</span></div>
+<div class="label"><span>e</span></div>
+</div>
+<div class="board" id="board2">
+<div class="nut"></div>
+<!-- Variation‑Aktionen: außerhalb des Boards platziert und zentriert. Die Inline‑Stile wurden entfernt, um CSS‑Regeln Vorrang zu geben. -->
+<div class="center" id="cg-variation-actions">
+<button class="btn" id="btn-cg-variation" type="button">C/G: Variation anzeigen</button>
+<span aria-live="polite" class="variation-msg" id="cg-variation-msg"></span>
+</div>
+<div class="strings" id="strings2">
+<div class="string" style="height:4.2px;"></div>
+<div class="string" style="height:3.4px;"></div>
+<div class="string" style="height:2.6px;"></div>
+<div class="string" style="height:2.0px;"></div>
+<div class="string" style="height:1.5px;"></div>
+<div class="string" style="height:1.1px;"></div>
+</div>
+<div class="frets" id="frets2">
+<div class="fret" style="flex-basis:24%;"></div>
+<div class="fret" style="flex-basis:21%;"></div>
+<div class="fret" style="flex-basis:18%;"><div class="inlay"></div></div>
+<div class="fret" style="flex-basis:16%;"></div>
+<div class="fret" style="flex-basis:14%;"><div class="inlay"></div></div>
+</div>
+<div class="markers" id="markers2"></div>
+<div class="markers" id="badges2"></div>
+</div>
+</div>
+<div class="center" style="margin-top:16px;">
+<!-- Optional: später können hier Chord-Steuerungen eingefügt werden -->
+</div>
+<div class="center"><a class="btn" onclick="showStart()">⟵ Zurück zur Startseite</a></div>
+</section>
+</div>
+<script>
+    function showGame(id){
+      document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));
+      if(id==='scale'){
+        document.getElementById('scale-screen').classList.remove('hidden');
+        if (typeof exitFindMode==='function') exitFindMode();
+        if (typeof exitIntervalMode==='function') exitIntervalMode();
+        resetScaleGame();
+      }
+      if(id==='fretboard'){
+        document.getElementById('fretboard-screen').classList.remove('hidden');
+        if (typeof exitFindMode==='function') exitFindMode();
+        if (typeof exitIntervalMode==='function') exitIntervalMode();
+      }
+      if(id==='find'){
+        document.getElementById('fretboard-screen').classList.remove('hidden');
+        if (typeof exitIntervalMode==='function') exitIntervalMode();
+        if (typeof startFindRound==='function') startFindRound();
+      }
+      if(id==='interval'){
+        document.getElementById('fretboard-screen').classList.remove('hidden');
+        if (typeof exitFindMode==='function') exitFindMode();
+        if (typeof startIntervalRound==='function') startIntervalRound();
+      }
+      // Spiel 5: Grundton/ Basston finden – zeigt eigenes Griffbrett
+      if(id==='chords'){
+        document.getElementById('chords-screen').classList.remove('hidden');
+      }
+    }
+
+
+    function showStart(){
+      document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));
+      document.getElementById('start-screen').classList.remove('hidden');
+    }
+
+    // Spiel 1: Tonleiter
+    const correctOrder = ["C","D","E","F","G","A","H","C"];
+    const notesContainer = document.getElementById('notes');
+    const message = document.getElementById('message');
+    const progressText = document.getElementById('progress');
+    const confetti = document.getElementById('confetti');
+    let currentIndex = 0;
+    let wrongCount = 0;
+    let msgTimeout = null;
+
+    function shuffle(array){return array.sort(()=>Math.random()-0.5);}
+    function setMessage(text, kind){ message.innerHTML=text; message.classList.remove('good','bad'); if(kind==='good') message.classList.add('good'); if(kind==='bad') message.classList.add('bad'); }
+    function clearMessageLater(delay=800){ if(msgTimeout) clearTimeout(msgTimeout); msgTimeout=setTimeout(()=>{message.innerHTML="";message.classList.remove('good','bad');},delay); }
+    function updateProgress(){ progressText.innerHTML = "Fortschritt: " + currentIndex + " / " + correctOrder.length + " richtig <small>· Fehler: " + wrongCount + "</small>"; }
+
+    function calmFinishPraise(errors){
+      if(errors===0) return "Ausgezeichnet. Keine Fehler.";
+      if(errors<=2) return "Sehr gut. Fast fehlerfrei.";
+      if(errors===4) return "Gut gemacht";
+      if(errors<=4) return "Gut gemacht.";
+      if(errors<=6) return "Du hast es geschafft. Mit etwas Übung klappt es bald fehlerfrei.";
+      if(errors<=8) return "Gut durchgehalten. Versuch’s gleich noch einmal – es wird jedes Mal besser.";
+      return "Geschafft.";
+    }
+
+    function resetScaleGame(){
+      if(msgTimeout){ clearTimeout(msgTimeout); msgTimeout=null; }
+      currentIndex=0; wrongCount=0; setMessage("", 'neutral'); updateProgress();
+      notesContainer.innerHTML="";
+      let shuffled = shuffle([...correctOrder]);
+      shuffled.forEach((n,i)=>{
+        const div=document.createElement('div'); div.className='note'; div.textContent=n;
+        div.onclick=()=>handleNoteClick(div,n); notesContainer.appendChild(div);
+        setTimeout(()=>div.classList.add('appear'), i*100 + Math.random()*150);
+      });
+    }
+
+    function handleNoteClick(div,n){
+      if(div.classList.contains('correct')) return;
+      if(n===correctOrder[currentIndex]){
+        div.classList.add('correct'); currentIndex++; updateProgress();
+        if(currentIndex===correctOrder.length){
+          if(msgTimeout){ clearTimeout(msgTimeout); msgTimeout=null; }
+          setMessage(calmFinishPraise(wrongCount), 'good');
+          if(wrongCount===0){ launchConfetti(); }
+        }else{ setMessage("Richtig. Du bist auf dem richtigen Weg.", 'good'); clearMessageLater(1500); }
+      }else{
+        wrongCount++; updateProgress(); div.classList.add('wrong','shake'); setTimeout(()=>div.classList.remove('wrong','shake'),400);
+        setMessage("Probier einen anderen Ton!", 'bad'); clearMessageLater(1500);
+      }
+    }
+
+    function launchConfetti(){
+      const count = 30;
+      for(let i=0;i<count;i++){
+        const star = document.createElement('div'); star.className='star'; star.textContent = Math.random()<0.5?'★':'✦';
+        const startX = Math.random()* (confetti.clientWidth - 20) + 10;
+        const drift = (Math.random() * 120 - 60) + 'px';
+        const duration = (1.6 + Math.random()*1.1).toFixed(2) + 's';
+        const delay = (Math.random()*0.25).toFixed(2) + 's';
+        star.style.left = startX + 'px'; star.style.setProperty('--x','0px'); star.style.setProperty('--dx',drift);
+        star.style.animationDuration = duration; star.style.animationDelay = delay;
+        confetti.appendChild(star); setTimeout(()=>{ star.remove(); }, (parseFloat(duration)+parseFloat(delay))*1000 + 200);
+      }
+    }
+
+    // Spiel 2: Griffbrett aufbauen + Interaktion
+    const stringNames=["E","A","D","g","h","e"];
+    function getLeftLabelIndexByName(name){
+      const nodes = document.querySelectorAll('#labels-left .label span');
+      for(let i=0;i<nodes.length;i++){ if(nodes[i].textContent===name) return i; }
+      return -1;
+    }
+    function getStringIndexByName(name){ return stringNames.indexOf(name); }
+    // Label-Highlighting für aktive Saite
+    function clearActiveLabels(){
+      document.querySelectorAll('#labels-left .label.active').forEach(el=>el.classList.remove('active'));
+    }
+    function setActiveLabelByIndex(idx){
+      const labs = document.querySelectorAll('#labels-left .label');
+      clearActiveLabels();
+      if (labs && labs[idx]) labs[idx].classList.add('active');
+    }
+    function setAllLabelsActive(){
+      document.querySelectorAll('#labels-left .label').forEach(el=>el.classList.add('active'));
+    }
+
+
+
+    const stringThickness=[4.2,3.4,2.6,2.0,1.5,1.1];
+    const labelsL=document.getElementById('labels-left'); const labelsR=document.getElementById('labels-right');
+    const stringsEl=document.getElementById('strings'); const fretsEl=document.getElementById('frets'); const markersEl=document.getElementById('markers');
+    let dShown = false;
+    let lowEShown = false;
+
+    function renderLabels(c){ if(!c) return; c.innerHTML=''; stringNames.forEach(n=>{ const row=document.createElement('div'); row.className='label'; const span=document.createElement('span'); span.textContent=n; row.appendChild(span); c.appendChild(row); }); }
+    function renderStrings(){ stringsEl.innerHTML=''; stringThickness.forEach(px=>{ const s=document.createElement('div'); s.className='string'; s.style.height=px+'px'; stringsEl.appendChild(s); }); }
+    function renderFrets(){ fretsEl.innerHTML=''; const fretWidths=[24,21,18,16,14]; fretWidths.forEach((w,i)=>{ const cell=document.createElement('div'); cell.className='fret'; cell.style.flexBasis=w+'%'; if([2,4].includes(i)){ const dot=document.createElement('div'); dot.className='inlay'; cell.appendChild(dot);} fretsEl.appendChild(cell); }); }
+
+    renderLabels(labelsL); if(labelsR) renderLabels(labelsR); renderStrings(); renderFrets();
+
+    // Interaktiv: Klick auf E (links, Leersaite) -> zeige F, G, A (Bünde 1,3,5) auf tiefer E-Saite
+    function getBoardRect(){ return document.getElementById('board').getBoundingClientRect(); }
+    function getCellRects(){ return Array.from(document.querySelectorAll('#frets .fret')).map(el=>el.getBoundingClientRect()); }
+    function getStringCenters(){
+      const rectBoard = getBoardRect();
+      return Array.from(document.querySelectorAll('#strings .string')).map(el=>{
+        const r = el.getBoundingClientRect();
+        return { y: (r.top + r.bottom)/2 - rectBoard.top };
+      });
+    }
+    function clearMarkers(){ markersEl.innerHTML = ''; }
+    function addMarker(x, y, label, sIdx, cellIdx){
+      const m = document.createElement('div');
+      m.className = 'marker';
+      m.textContent = label;
+      m.style.left = x + 'px';
+      m.style.top  = y + 'px';
+      // Store optional indices for responsive repositioning
+      if (typeof sIdx !== 'undefined') m.dataset.s = sIdx;
+      if (typeof cellIdx !== 'undefined') m.dataset.fret = cellIdx;
+      markersEl.appendChild(m);
+    }
+
+    function showLowE_F_G_A(){
+      // draw markers for F, G, A on low E
+
+      clearMarkers();
+      const boardRect = getBoardRect(); const cells = getCellRects(); const stringsY = getStringCenters();
+      const y = stringsY[0].y; // tiefe E-Saite (column-reverse -> Index 0)
+      const idx = [0,2,4]; const labels = ['F','G','A'];
+      idx.forEach((i,k)=>{
+        const cx = (cells[i].left + cells[i].right)/2 - boardRect.left;
+        // string index 0 (tiefe E), cell index i
+        addMarker(cx, y, labels[k], 0, i);
+      });
+      lowEShown = true;
+    }
+
+    function toggleLowE_FGA(){
+      if (typeof intervalMode!=='undefined' && intervalMode) { return; }
+
+      if (typeof gameMode!=='undefined' && gameMode==='find') { return; }
+
+      if(typeof hcShown!=='undefined'){ for(const k in hcShown){ hcShown[k]=false; } }
+      if(typeof highEShown!=='undefined') highEShown=false;
+      if(typeof dShown!=='undefined') dShown=false;
+      if(lowEShown){
+        if (typeof clearMarkers==='function') clearMarkers();
+        lowEShown = false;
+        if (typeof clearActiveLabels==='function') clearActiveLabels();
+      } else {
+        if (typeof showLowE_F_G_A==='function') showLowE_F_G_A();
+        if (typeof setActiveLabelByIndex==='function') setActiveLabelByIndex(0);
+        lowEShown = true;
+      }
+    }
+
+    (function makeELowClickable(){
+      const leftLabels = document.querySelectorAll('#labels-left .label');
+      if(leftLabels.length){
+        leftLabels[0].classList.add('clickable');
+        const spanEl = leftLabels[0].querySelector('span');
+        if(spanEl){ }
+        // Tooltip kurz automatisch zeigen
+        leftLabels[0].classList.add('tip-show');
+        setTimeout(()=> leftLabels[0].classList.remove('tip-show'), 1600);
+      }
+    })();
+  
+    // --- H/C Anzeigen auf bestimmten Saiten (0–5 Bünde) ---
+    const hcShown = {1:false, 3:false, 4:false}; // A, g, h
+    
+    function showHC_onString(idxString){
+      clearMarkers();
+      const boardRect = getBoardRect();
+      const cells = getCellRects();
+      const stringsY = getStringCenters();
+      const y = stringsY[idxString].y;
+      if(idxString ===1){ // A-Saite: H(2)->1, C(3)->2, D(5)->4
+        const pos = [{cell:1, n:'H'},{cell:2, n:'C'},{cell:4, n:'D'}];
+        pos.forEach(p=>{
+          const cx = (cells[p.cell].left + cells[p.cell].right)/2 - boardRect.left;
+          addMarker(cx, y, p.n, idxString, p.cell);
+        });
+      } else if(idxString ===3){ // g-Saite: A(2)->1, H(4)->3, C(5)->4
+        const pos = [{cell:1, n:'A'},{cell:3, n:'H'},{cell:4, n:'C'}];
+        pos.forEach(p=>{
+          const cx = (cells[p.cell].left + cells[p.cell].right)/2 - boardRect.left;
+          addMarker(cx, y, p.n, idxString, p.cell);
+        });
+      } else if(idxString ===4){ // h-Saite: C(1)->0, D(3)->2, E(5)->4
+        const pos = [{cell:0, n:'C'},{cell:2, n:'D'},{cell:4, n:'E'}];
+        pos.forEach(p=>{
+          const cx = (cells[p.cell].left + cells[p.cell].right)/2 - boardRect.left;
+          addMarker(cx, y, p.n, idxString, p.cell);
+        });
+      }
+    }
+
+
+    function toggleHC(idxString){
+      if (typeof intervalMode!=='undefined' && intervalMode) { return; }
+
+      if (typeof gameMode!=='undefined' && gameMode==='find') { return; }
+
+      // deactivate others
+      if(typeof lowEShown!=='undefined') lowEShown=false;
+      if(typeof highEShown!=='undefined') highEShown=false;
+      if(typeof dShown!=='undefined') dShown=false;
+      // toggle this string
+      if(hcShown[idxString]){
+        if (typeof clearMarkers==='function') clearMarkers();
+        hcShown[idxString]=false;
+        if (typeof clearActiveLabels==='function') clearActiveLabels();
+      } else {
+        if (typeof showHC_onString==='function') showHC_onString(idxString);
+        for(const k in hcShown){ hcShown[k] = Number(k)===idxString; }
+        if (typeof setActiveLabelByIndex==='function') setActiveLabelByIndex(idxString);
+      }
+    }
+    let highEShown = false;
+
+    function showHighE_F_G_A(){
+      clearMarkers();
+      const boardRect = getBoardRect();
+      const cells = getCellRects();
+      const stringsY = getStringCenters();
+      const idxE = (typeof getStringIndexByName ==='function') ? getStringIndexByName('e') : 5;
+      const y = stringsY[idxE].y;
+      const idx = [0,2,4]; const labels = ['F','G','A'];
+      idx.forEach((i,k)=>{
+        const cx = (cells[i].left + cells[i].right)/2 - boardRect.left;
+        addMarker(cx, y, labels[k], idxE, i);
+      });
+      highEShown = true;
+    }
+    
+    function toggleHighE_FGA(){
+      if (typeof intervalMode!=='undefined' && intervalMode) { return; }
+
+      if (typeof gameMode!=='undefined' && gameMode==='find') { return; }
+
+      if(typeof lowEShown!=='undefined') lowEShown=false;
+      if(typeof dShown!=='undefined') dShown=false;
+      if(typeof hcShown!=='undefined'){ for(const k in hcShown){ hcShown[k]=false; } }
+      if(highEShown){
+        if (typeof clearMarkers==='function') clearMarkers();
+        highEShown=false;
+        if (typeof clearActiveLabels==='function') clearActiveLabels();
+      } else {
+        if (typeof showHighE_F_G_A==='function') showHighE_F_G_A();
+        const idxE = (typeof getStringIndexByName==='function') ? getStringIndexByName('e') : 5;
+        if (typeof setActiveLabelByIndex==='function') setActiveLabelByIndex(idxE);
+        highEShown=true;
+      }
+    }
+
+    // Re-added D string functions (E, F, G on D string)
+    function showD_EF(){
+      if (typeof clearMarkers==='function') clearMarkers();
+      const boardRect = getBoardRect();
+      const cells = getCellRects();
+      const stringsY = getStringCenters();
+      const idxD = (typeof getStringIndexByName==='function') ? getStringIndexByName('D') : 2;
+      const y = stringsY[idxD].y;
+      const positions = [{cell:1, n:'E'}, {cell:2, n:'F'}, {cell:4, n:'G'}];
+      positions.forEach(p=>{
+        const cx = (cells[p.cell].left + cells[p.cell].right)/2 - boardRect.left;
+        addMarker(cx, y, p.n, idxD, p.cell);
+      });
+      dShown = true;
+    }
+
+    function toggleD_EF(){
+      if (typeof intervalMode!=='undefined' && intervalMode) { return; }
+
+      if (typeof gameMode!=='undefined' && gameMode==='find') { return; }
+
+      if(typeof hcShown!=='undefined'){ for(const k in hcShown){ hcShown[k]=false; } }
+      if(typeof lowEShown!=='undefined') lowEShown=false;
+      if(typeof highEShown!=='undefined') highEShown=false;
+      if(dShown){
+        if (typeof clearMarkers==='function') clearMarkers();
+        dShown=false;
+        if (typeof clearActiveLabels==='function') clearActiveLabels();
+      } else {
+        showD_EF();
+        const dIdx = (typeof getLeftLabelIndexByName==='function') ? getLeftLabelIndexByName('D') : 2;
+        if (typeof setActiveLabelByIndex==='function') setActiveLabelByIndex(dIdx>=0?dIdx:2);
+        dShown=true;
+      }
+    }
+
+
+    (function bindLeftLabelClicks(){
+      const leftLabels = document.querySelectorAll('#labels-left .label');
+      if(!leftLabels.length) return;
+      /*
+       * Bind the handlers on pointerdown instead of click so that on touch
+       * devices the tones and highlighting appear immediately when a user
+       * presses the label. Using click alone delays execution until the
+       * pointer is released, which prevented the active background from
+       * becoming visible on some devices. See https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerdown_event
+       */
+      function addHandler(el, handler){
+        el.classList.add('clickable');
+        // pointerdown triggers earlier than click and works with both mouse and touch
+        el.addEventListener('pointerdown', (evt)=>{
+          // prevent the subsequent click from firing a duplicate handler
+          evt.preventDefault();
+          // immediately apply the active class so the background appears on press
+          const idx = Array.prototype.indexOf.call(leftLabels, el);
+          if (typeof setActiveLabelByIndex === 'function') setActiveLabelByIndex(idx);
+          handler();
+        });
+        // also fallback to touchstart for older browsers without pointer events
+        el.addEventListener('touchstart', (evt)=>{
+          evt.preventDefault();
+          const idx = Array.prototype.indexOf.call(leftLabels, el);
+          if (typeof setActiveLabelByIndex === 'function') setActiveLabelByIndex(idx);
+          handler();
+        }, {passive:false});
+      }
+      // tiefe E‑Saite (Index 0)
+      addHandler(leftLabels[0], toggleLowE_FGA);
+      // A‑Saite (Index 1)
+      addHandler(leftLabels[1], ()=>toggleHC(1));
+      // D‑Saite: robust via name lookup
+      const dIdx = getLeftLabelIndexByName('D');
+      if(dIdx>=0){
+        addHandler(leftLabels[dIdx], ()=>toggleD_EF());
+      }
+      // g‑Saite (Index 3)
+      addHandler(leftLabels[3], ()=>toggleHC(3));
+      // h‑Saite (Index 4)
+      addHandler(leftLabels[4], ()=>toggleHC(4));
+      // hohe e‑Saite (Index 5) – wie tiefe E: F/G/A
+      addHandler(leftLabels[5], ()=>toggleHighE_FGA());
+    })();
+
+    // Immediately highlight a string label on pointer/touch down.  On touch
+    // devices the built-in click event fires only on touchend, so users
+    // wouldn’t see the selection until after lifting their finger.  This
+    // listener applies the active class as soon as the user touches or presses
+    // down on a label, matching the expected behaviour on desktop and mobile.
+    /*
+     * Note: Touch/pointer handlers for the left string labels are now bound in
+     * bindLeftLabelClicks() so that the label becomes active and the
+     * associated notes are displayed immediately on pointer down. The
+     * previous bindLeftLabelTouchHighlights() helper is no longer needed.
+     */
+
+  
+    // ===Spiel 3: Ton auf einer bestimmten Saite finden ===let gameMode = 'explore';           // 'explore' (Spiel 2) oder 'find' (Spiel 3)
+    let findTarget = null;              // {stringIdx, cell, note}
+    const stringNoteMap = {
+      0: [{cell:0,n:'F'},{cell:2,n:'G'},{cell:4,n:'A'}],            // tiefe E
+      1: [{cell:1,n:'H'},{cell:2,n:'C'},{cell:4,n:'D'}],            // A
+      2: [{cell:1,n:'E'},{cell:2,n:'F'},{cell:4,n:'G'}],            // D
+      3: [{cell:1,n:'A'},{cell:3,n:'H'},{cell:4,n:'C'}],            // g
+      4: [{cell:0,n:'C'},{cell:2,n:'D'},{cell:4,n:'E'}],            // h
+      5: [{cell:0,n:'F'},{cell:2,n:'G'},{cell:4,n:'A'}]             // hohe e
+    };
+
+    function setFindUI(visible){
+      const bar = document.getElementById('find-bar');
+      const wrap = document.getElementById('all-notes-wrap');
+      if(bar){ bar.classList.toggle('hidden', !visible); }
+      if(wrap){ wrap.classList.toggle('hidden', visible); }
+      const hint = document.querySelectorAll('.subhint');
+      hint.forEach(h => h.classList.toggle('hidden', visible));
+    }
+
+    function startFindRound(){
+      gameMode = 'find';
+      setFindUI(true);
+      if (typeof clearMarkers==='function') clearMarkers();
+      const sIdx = Math.floor(Math.random()*6);
+      const opts = stringNoteMap[sIdx];
+      const pick = opts[Math.floor(Math.random()*opts.length)];
+      findTarget = { stringIdx: sIdx, cell: pick.cell, note: pick.n };
+      const task = document.getElementById('find-task');
+      if(task){ task.innerHTML = "<strong>Aufgabe:</strong> Finde den Ton <b>"+pick.n+"</b> auf der <b>"+stringNames[sIdx]+"</b>-Saite."; }
+      const fb = document.getElementById('find-feedback');
+      if(fb){ fb.textContent = ""; fb.classList.remove('good','bad'); }
+      if (typeof setActiveLabelByIndex==='function') setActiveLabelByIndex(sIdx);
+      const board = document.getElementById('board');
+      if(board && !board.__findBound){
+        board.addEventListener('click', onBoardClick);
+        board.__findBound = true;
+      }
+    }
+
+    function exitFindMode(){
+      gameMode = 'explore';
+      setFindUI(false);
+      findTarget = null;
+      if (typeof clearActiveLabels==='function') clearActiveLabels();
+      const fb = document.getElementById('find-feedback');
+      if(fb){ fb.textContent = ""; fb.classList.remove('good','bad'); }
+      if (typeof clearMarkers==='function') clearMarkers();
+    }
+
+    function onBoardClick(evt){
+      if(gameMode!=='find' || !findTarget) return;
+      const boardRect = getBoardRect();
+      const cells = getCellRects();
+      const stringsY = getStringCenters();
+      const x = evt.clientX - boardRect.left;
+      const y = evt.clientY - boardRect.top;
+      let sIdx = 0, minDy = Infinity;
+      stringsY.forEach((s,i)=>{ const dy = Math.abs(y - s.y); if(dy < minDy){minDy = dy; sIdx = i;} });
+      let cIdx = -1;
+      for(let i=0;i<cells.length;i++){
+        const left = cells[i].left - boardRect.left;
+        const right = cells[i].right - boardRect.left;
+        if(x >= left && x <= right){ cIdx = i; break; }
+      }
+      if(cIdx ===-1) return;
+      const fb = document.getElementById('find-feedback');
+      if(sIdx ===findTarget.stringIdx && cIdx ===findTarget.cell){
+        const cx = (cells[cIdx].left + cells[cIdx].right)/2 - boardRect.left;
+        const sy = stringsY[sIdx].y;
+        // pass string and fret indices so the marker can be repositioned on resize
+        addMarker(cx, sy, findTarget.note, sIdx, cIdx);
+        if(fb){ fb.textContent = "Richtig!"; fb.classList.remove('bad'); fb.classList.add('good'); }
+      } else {
+        if(fb){ fb.textContent = "Probier einen anderen Ton!"; fb.classList.remove('good'); fb.classList.add('bad'); }
+      }
+    }
+
+    // ===Spiel 4: Halbtonschritte finden (zwei Marker auf Griffbrett) ===let intervalMode = false;
+    let intervalPair = null; // {sIdx, cellA, noteA, cellB, noteB, semis}
+
+    // chromatic scale (deutsch: H statt B, B = Bb nicht genutzt hier)
+    const CHROMA = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','H'];
+    function semitoneIndex(n){
+      return CHROMA.indexOf(n);
+    }
+    function semitoneDistance(n1, n2){
+      const i1 = semitoneIndex(n1), i2 = semitoneIndex(n2);
+      if(i1<0 || i2<0) return null;
+      return ( (i2 - i1) + 12 ) % 12;
+    }
+
+    // C-Dur-Noten pro Saite inkl. leerer Saite. Die Zellen orientieren sich an den sichtbaren Bünden:
+    // -1 steht für die leere Saite (links vom Sattel), 0 für den 1. Bund usw.
+    // Dadurch können Intervalle von offenen Saiten bis zu anderen Tönen berechnet werden.
+    const FB_MAP = {
+      // tiefe E‑Saite: E (leer) → 1. Bund F → 3. Bund G → 5. Bund A
+      0: [
+        {cell:-1,n:'E'},
+        {cell:0,n:'F'},
+        {cell:2,n:'G'},
+        {cell:4,n:'A'}
+      ],
+      // A‑Saite: A (leer) → 2. Bund H → 3. Bund C → 5. Bund D
+      1: [
+        {cell:-1,n:'A'},
+        {cell:1,n:'H'},
+        {cell:2,n:'C'},
+        {cell:4,n:'D'}
+      ],
+      // D‑Saite: D (leer) → 2. Bund E → 3. Bund F → 5. Bund G
+      2: [
+        {cell:-1,n:'D'},
+        {cell:1,n:'E'},
+        {cell:2,n:'F'},
+        {cell:4,n:'G'}
+      ],
+      // g‑Saite: G (leer) → 2. Bund A → 4. Bund H → 5. Bund C
+      3: [
+        {cell:-1,n:'G'},
+        {cell:1,n:'A'},
+        {cell:3,n:'H'},
+        {cell:4,n:'C'}
+      ],
+      // h‑Saite: H (leer) → 1. Bund C → 3. Bund D → 5. Bund E
+      4: [
+        {cell:-1,n:'H'},
+        {cell:0,n:'C'},
+        {cell:2,n:'D'},
+        {cell:4,n:'E'}
+      ],
+      // hohe e‑Saite: E (leer) → 1. Bund F → 3. Bund G → 5. Bund A
+      5: [
+        {cell:-1,n:'E'},
+        {cell:0,n:'F'},
+        {cell:2,n:'G'},
+        {cell:4,n:'A'}
+      ]
+    };
+
+    function setIntervalUI(visible){
+      const bar = document.getElementById('interval-bar');
+      const findBar = document.getElementById('find-bar');
+      const allWrap = document.getElementById('all-notes-wrap');
+      if(bar) bar.classList.toggle('hidden', !visible);
+      if(findBar) findBar.classList.add('hidden');
+      if(allWrap) allWrap.classList.toggle('hidden', visible);
+      const hint = document.querySelectorAll('.subhint');
+      hint.forEach(h => h.classList.toggle('hidden', visible));
+    }
+
+    function startIntervalRound(){
+      intervalMode = true;
+      gameMode = 'explore'; // falls gesetzt, deaktivieren
+      setIntervalUI(true);
+      if (typeof clearMarkers==='function') clearMarkers();
+
+      // 1) zufällige Saite, 2) zwei verschiedene Noten aus dieser Saite
+      const sIdx = Math.floor(Math.random()*6);
+      const opts = FB_MAP[sIdx];
+      const i = Math.floor(Math.random()*opts.length);
+      let j = Math.floor(Math.random()*opts.length);
+      if(j===i) j = (j+1)%opts.length;
+
+      // zwei Kandidaten wählen
+      let A = opts[i];
+      let B = opts[j];
+      // Sicherstellen: tiefere Position links (kleinerer Bund) → aufwärts zählen
+      if (A.cell > B.cell) { const tmp = A; A = B; B = tmp; }
+
+      const semis = semitoneDistance(A.n, B.n);
+      intervalPair = { sIdx, cellA: A.cell, noteA: A.n, cellB: B.cell, noteB: B.n, semis };
+
+      // Marker zeichnen. Leere Saite (cell < 0) wird am Sattel positioniert.
+      const boardRect = getBoardRect();
+      const cells = getCellRects();
+      const stringsY = getStringCenters();
+      const y = stringsY[sIdx].y;
+      let cxA;
+      // Für gegriffene Starttöne den Marker setzen
+      let cxB = (cells[B.cell].left + cells[B.cell].right)/2 - boardRect.left;
+      if (A.cell >= 0) {
+        cxA = (cells[A.cell].left + cells[A.cell].right)/2 - boardRect.left;
+        // pass string and fret indices so the marker can be repositioned on resize
+        addMarker(cxA, y, A.n, sIdx, A.cell);
+      } else {
+        // Offene Saite: kein Marker auf dem Griffbrett; die leere Saite wird durch die Label-Markierung kenntlich gemacht
+      }
+      // pass string and fret indices so the marker can be repositioned on resize
+      addMarker(cxB, y, B.n, sIdx, B.cell);
+
+      // Frage + Antwortoptionen setzen
+      const task = document.getElementById('interval-task');
+      if (task) {
+        let fromLabel;
+        if (A.cell < 0) {
+          fromLabel = "der leeren " + stringNames[sIdx] + "-Saite";
+        } else {
+          fromLabel = A.n;
+        }
+        task.innerHTML = "<strong>Frage:</strong> Wie viele Halbtonschritte sind es von <b>" + fromLabel + "</b> nach <b>" + B.n + "</b>?";
+      }
+      const ans = document.getElementById('interval-answers');
+      if(ans){
+        // Clear any existing answers
+        ans.innerHTML = "";
+        // Create new answer buttons (1-6). They will animate into view when
+        // the `.show` class is applied shortly after being appended.
+        const btns = [];
+        for(let k=1; k<=6; k++){
+          const b = document.createElement('div');
+          b.className = 'ans';
+          b.textContent = k;
+          b.onclick = () => onIntervalAnswer(k);
+          ans.appendChild(b);
+          btns.push(b);
+        }
+        // Stagger the appearance of each button for a gentle pop-in effect.
+        // To achieve a "fan-out" animation from the center, compute an order
+        // where the middle buttons appear first, followed by adjacent
+        // neighbours && finally the outermost buttons. For an even number
+        // of buttons (e.g. 6), there are two central indices. For odd
+        // numbers, the single central index is shown first.
+        const total = btns.length;
+        let order = [];
+        if (total % 2 ===0) {
+          // even: two central indices
+          const half = total / 2;
+          for (let offset = 0; offset < half; offset++) {
+            order.push(half - 1 - offset);
+            order.push(half + offset);
+          }
+        } else {
+          // odd: one central index
+          const mid = Math.floor(total / 2);
+          order.push(mid);
+          for (let offset = 1; offset <= mid; offset++) {
+            order.push(mid - offset);
+            order.push(mid + offset);
+          }
+        }
+        // Apply the show class in the computed order with a delay
+        order.forEach((btnIdx, seqIdx) => {
+          const btn = btns[btnIdx];
+          setTimeout(() => {
+            btn.classList.add('show');
+          }, 60 * seqIdx);
+        });
+      }
+      const fb = document.getElementById('interval-feedback');
+      if(fb){ fb.textContent=""; fb.classList.remove('good','bad'); }
+      if (typeof setActiveLabelByIndex==='function') setActiveLabelByIndex(sIdx);
+    }
+
+    function exitIntervalMode(){
+      intervalMode = false;
+      intervalPair = null;
+      setIntervalUI(false);
+      if (typeof clearActiveLabels==='function') clearActiveLabels();
+      const fb = document.getElementById('interval-feedback');
+      if(fb){ fb.textContent=""; fb.classList.remove('good','bad'); }
+      if (typeof clearMarkers==='function') clearMarkers();
+    }
+
+    function onIntervalAnswer(val){
+      if(!intervalMode || !intervalPair) return;
+      const fb = document.getElementById('interval-feedback');
+      if(val ===intervalPair.semis){
+        if(fb){
+          fb.textContent = "Richtig! Von " + intervalPair.noteA + " nach " + intervalPair.noteB + " = " + intervalPair.semis + " Halbtonschritte.";
+          fb.classList.remove('bad'); fb.classList.add('good');
+        }
+      } else {
+        if(fb){
+          fb.textContent = "Nicht ganz – zähle die Bünde von " + intervalPair.noteA + " nach " + intervalPair.noteB + ".";
+          fb.classList.remove('good'); fb.classList.add('bad');
+        }
+      }
+    }
+</script>
+<script>
+function toggleAllNotes(event) {
+  const btn = event.target;
+  const allLabels = document.querySelectorAll('#labels-left .label');
+  if (!window.allShown) {
+    // Fresh draw
+    if (typeof clearMarkers ==='function') clearMarkers();
+    if (typeof getBoardRect !== 'function' || typeof getCellRects !== 'function' || typeof getStringCenters !== 'function') return;
+    if (typeof addMarker !== 'function' || typeof markersEl ==='undefined') return;
+
+    const boardRect = getBoardRect();
+    const cells = getCellRects();
+    const stringsY = getStringCenters();
+    const addAt = (cellIdx, stringIdx, label) => {
+      const cx = (cells[cellIdx].left + cells[cellIdx].right)/2 - boardRect.left;
+      const y  = stringsY[stringIdx].y;
+      // pass string and fret indices so the marker can be repositioned on resize
+      addMarker(cx, y, label, stringIdx, cellIdx);
+    };
+
+    // E (0): F(1)->0, G(3)->2, A(5)->4
+    addAt(0, 0, 'F'); addAt(2, 0, 'G'); addAt(4, 0, 'A');
+    // A (1): H(2)->1, C(3)->2, D(5)->4
+    addAt(1, 1, 'H'); addAt(2, 1, 'C'); addAt(4, 1, 'D');
+    // D (2): E(2)->1, F(3)->2, G(5)->4
+    addAt(1, 2, 'E'); addAt(2, 2, 'F'); addAt(4, 2, 'G');
+    // g (3): A(2)->1, H(4)->3, C(5)->4
+    addAt(1, 3, 'A'); addAt(3, 3, 'H'); addAt(4, 3, 'C');
+    // h (4): C(1)->0, D(3)->2, E(5)->4
+    addAt(0, 4, 'C'); addAt(2, 4, 'D'); addAt(4, 4, 'E');
+    // e (5): F(1)->0, G(3)->2, A(5)->4
+    addAt(0, 5, 'F'); addAt(2, 5, 'G'); addAt(4, 5, 'A');
+
+    // Activate all labels
+    allLabels.forEach(el => el.classList.add('active'));
+
+    // Reset per-string toggles
+    try {
+      if (typeof hcShown!=='undefined') { for (const k in hcShown) hcShown[k] = false; }
+      if (typeof lowEShown!=='undefined') lowEShown=false;
+      if (typeof highEShown!=='undefined') highEShown=false;
+      if (typeof dShown!=='undefined') dShown=false;
+    } catch(e) {}
+
+    window.allShown = true;
+    btn.textContent = "🎵 Alle Töne ausblenden";
+  } else {
+    if (typeof clearMarkers ==='function') clearMarkers();
+    allLabels.forEach(el => el.classList.remove('active'));
+    window.allShown = false;
+    btn.textContent = "🎵 Alle Töne anzeigen";
+  }
+}
+</script>
+<script>
+(function setupChordButton(){
+  var btn = document.getElementById('btn-chord-c');
+  if(!btn) return;
+  btn.addEventListener('click', markChordC);
+})();
+
+function markChordC(){
+  var board   = document.getElementById('board2');
+  var frets   = Array.prototype.slice.call(document.querySelectorAll('#frets2 .fret'));
+  var strings = Array.prototype.slice.call(document.querySelectorAll('#strings2 .string'));
+  var layer   = document.getElementById('markers2');
+  if(!board || frets.length===0 || strings.length!==6 || !layer) return;
+
+  var br = board.getBoundingClientRect();
+
+  function fretCenterX(fretIdx){
+    var r = frets[fretIdx].getBoundingClientRect();
+    return (r.left + r.right)/2 - br.left;
+  }
+  function stringCenterY(stringIdx){
+    var r = strings[stringIdx].getBoundingClientRect();
+    return (r.top + r.bottom)/2 - br.top;
+  }
+  function addMarker(stringIdx, fretIdx, label, isRoot){
+    var d = document.createElement('div');
+    d.className = 'marker' + (isRoot ? ' root' : '');
+    d.textContent = label || '●';
+    d.style.left = fretCenterX(fretIdx) + 'px';
+    d.style.top  = stringCenterY(stringIdx) + 'px';
+    layer.appendChild(d);
+  }
+
+  layer.innerHTML = '';
+
+  // C-Dur: x-3-2-0-1-0
+  addMarker(1, 2, 'C', true); // A-Saite, 3. Bund (Grundton)
+  addMarker(2, 1, 'E');       // D-Saite, 2. Bund
+  addMarker(4, 0, 'C');       // H-Saite, 1. Bund
+}
+</script>
+<script id="chord-responsive-markers">
+(function(){
+  if (window._chordSetupDone) return;
+  window._chordSetupDone = true;
+
+  var board = document.getElementById('board2');
+  var layer = document.getElementById('markers2');
+  window._chordSpec = null;
+
+  function drawChord(spec){
+    if(!board || !layer) return;
+    var frets   = Array.prototype.slice.call(document.querySelectorAll('#frets2 .fret'));
+    var strings = Array.prototype.slice.call(document.querySelectorAll('#strings2 .string'));
+    if(frets.length===0 || strings.length!==6) return;
+
+    var br = board.getBoundingClientRect();
+    // Highlight left labels for open-string roots
+    var labels2 = Array.prototype.slice.call(document.querySelectorAll('#labels-left2 .label'));
+    labels2.forEach(function(el){ el.classList.remove('root'); });
+
+    function fretCenterX(idx){
+      var r = frets[idx].getBoundingClientRect();
+      return (r.left + r.right)/2 - br.left;
+    }
+    
+  // Expose for external updates
+  window._drawChord = drawChord;
+function stringCenterY(idx){
+      var r = strings[idx].getBoundingClientRect();
+      return (r.top + r.bottom)/2 - br.top;
+    }
+
+    layer.innerHTML='';
+    spec.forEach(function(p){
+      // Open-string root: highlight left label instead of drawing a marker
+      if(p.root && p.open){
+        var labels2 = Array.prototype.slice.call(document.querySelectorAll('#labels-left2 .label'));
+        labels2.forEach(function(el){ el.classList.remove('root'); });
+        if(labels2 && labels2[p.string]) labels2[p.string].classList.add('root');
+        return;
+      }
+      var d = document.createElement('div');
+      d.className = 'marker' + (p.root ? ' root' : '');
+      d.textContent = p.label || '●';
+      var xPos = (p.open ? Math.max(8, (frets[0].getBoundingClientRect().left - br.left) - 16) : fretCenterX(p.fret));
+      d.style.left = xPos + 'px';
+      d.style.top  = stringCenterY(p.string) + 'px';
+      layer.appendChild(d);
+    });
+  }
+
+  window.markChordC = function(){
+    window._chordSpec = [
+      {string:1, fret:2, label:'C', root:true}, // A-Saite, 3. Bund (Grundton)
+      {string:2, fret:1, label:'E'},            // D-Saite, 2. Bund
+      {string:4, fret:0, label:'C'}             // H-Saite, 1. Bund
+    ];
+    requestAnimationFrame(function(){ drawChord(window._chordSpec); });
+  };
+
+  var btn = document.getElementById('btn-chord-c');
+  if(btn) btn.addEventListener('click', window.markChordC);
+
+  // Redraw markers when board resizes || orientation/viewport changes
+  if (board && 'ResizeObserver' in window){
+    var ro = new ResizeObserver(function(){ if(window._chordSpec) drawChord(window._chordSpec); });
+    ro.observe(board);
+  } else {
+    window.addEventListener('resize', function(){ if(window._chordSpec) drawChord(window._chordSpec); });
+    window.addEventListener('orientationchange', function(){ if(window._chordSpec) drawChord(window._chordSpec); });
+  }
+})();
+</script>
+<script id="chord-quiz">
+(function(){
+  var board = document.getElementById('board2');
+  var msg = document.getElementById('chords-quiz-msg');
+  var btnCH = document.getElementById('btn-quiz-ch');
+  var btnCA = document.getElementById('btn-quiz-ca');
+  var btnCG = document.getElementById('btn-quiz-cg');
+  var btnHint = document.getElementById('btn-quiz-hint');
+
+  var labels = Array.prototype.slice.call(document.querySelectorAll('#labels-left2 .label'));
+  var eLowLabel = labels && labels[0] ? labels[0] : null; // tiefe E
+  var aLabel = labels && labels[1] ? labels[1] : null;    // A
+
+  var quiz = {active:false, type:null, hintLevel:0};
+
+  function setMsg(t, kind){
+    if(!msg) return;
+    msg.textContent = t || "";
+    msg.classList.remove('good','bad');
+    if(kind==='good') msg.classList.add('good');
+    else if(kind==='bad') msg.classList.add('bad');
+  }
+
+  function drawSpec(spec){
+    window._chordSpec = spec;
+    if(typeof window._drawChord==='function') window._drawChord(window._chordSpec);
+  }
+
+  function resetToBaseC(){
+    if (typeof window.markChordC==='function'){ window.markChordC(); }
+  }
+
+  function cleanupLabel(el){
+    if(!el) return;
+    el.classList.remove('clickable','active');
+    if(el.__fn){ el.removeEventListener('click', el.__fn); el.__fn=null; }
+  }
+
+  function applyRoot(newRoot){
+    var spec = Array.isArray(window._chordSpec) ? window._chordSpec.slice() : [];
+    spec = spec.filter(function(p){ return !p.root; });
+    spec.push(newRoot);
+    drawSpec(spec);
+    setMsg('Richtig! Der Grundton wurde aktualisiert.', 'good');
+    quiz.active = false;
+    cleanupLabel(aLabel); cleanupLabel(eLowLabel);
+  }
+
+  function startQuiz(type){
+    resetToBaseC();
+    if(window._cgVarOff){ try{ window._cgVarOff(); }catch(e){} }
+    (function(){ var main=document.getElementById('chords-quiz-msg'); if(main){ main.classList.remove('hidden'); } })();
+    if (window._cgVarOff) window._cgVarOff();
+    quiz.active = true;
+    quiz.type = type;
+    quiz.hintLevel = 0;
+    cleanupLabel(aLabel); cleanupLabel(eLowLabel);
+
+    if(type==='C_over_H'){
+      setMsg('Klicke den Grundton für C/H.', null);
+    } else if(type==='C_over_A'){
+      setMsg('Klicke den Grundton für C/A.', null);
+      if(aLabel){
+        aLabel.classList.add('clickable','active');
+        var fnA = function(){
+          applyRoot({string:1, open:true, label:'A', root:true});
+        };
+        aLabel.__fn = fnA;
+        aLabel.addEventListener('click', fnA);
+      }
+    } else if(type==='C_over_G'){
+      setMsg('Klicke den Grundton für C/G.', null);
+    }
+  }
+
+  function showHint(){
+    if(!quiz.active){ setMsg('Starte zuerst eine Frage (C/H, C/A oder C/G).', 'bad'); return; }
+    quiz.hintLevel++;
+    if(quiz.type==='C_over_H'){
+      if(quiz.hintLevel===1){ setMsg('Hinweis: Der Grundton liegt auf der A-Saite.', null); }
+      else { setMsg('Hinweis: A-Saite, 2. Bund.', null); }
+    }else if(quiz.type==='C_over_A'){
+      if(quiz.hintLevel===1){ setMsg('Hinweis: Der Grundton liegt auf der A-Saite.', null); }
+      else { setMsg('Hinweis: A-Saite, leere Saite (links).', null); }
+    }else if(quiz.type==='C_over_G'){
+      if(quiz.hintLevel===1){ setMsg('Hinweis: Der Grundton liegt auf der tiefen E-Saite.', null); }
+      else { setMsg('Hinweis: Tiefe E-Saite, 3. Bund.', null); }
+    }
+  }
+
+  function onBoardClick(e){
+    if(!quiz.active || !board) return;
+    var br = board.getBoundingClientRect();
+    var frets = Array.prototype.slice.call(document.querySelectorAll('#frets2 .fret'));
+    var strings = Array.prototype.slice.call(document.querySelectorAll('#strings2 .string'));
+    if(!frets.length || strings.length!==6) return;
+
+    var x = e.clientX - br.left;
+    var y = e.clientY - br.top;
+
+    // nearest string index
+    var sIdx = 0, minDy = Infinity;
+    strings.forEach(function(el,i){
+      var r = el.getBoundingClientRect();
+      var cy = (r.top + r.bottom)/2 - br.top;
+      var dy = Math.abs(y - cy);
+      if(dy < minDy){ minDy = dy; sIdx = i; }
+    });
+
+    var firstLeft = frets[0].getBoundingClientRect().left - br.left;
+    var isOpen = x <= firstLeft + 10;
+
+    var cellIdx = -1;
+    if(!isOpen){
+      for(var i=0;i<frets.length;i++){
+        var r = frets[i].getBoundingClientRect();
+        var left = r.left - br.left, right = r.right - br.left;
+        if(x >= left && x <= right){ cellIdx = i; break; }
+      }
+    }
+
+    if(quiz.type==='C_over_H'){
+      if(sIdx===1 && !isOpen && cellIdx === 1){
+        applyRoot({string:1, fret:1, label:'H', root:true});
+      } else {
+        if(sIdx===1){
+          setMsg('Fast – klicke auf den 2. Bund der A‑Saite. 💡 Hinweis hilft weiter.', 'bad');
+        } else {
+          setMsg('Nicht ganz – 💡 Hinweis hilft weiter.', 'bad');
+        }
+      }
+    } else if(quiz.type==='C_over_A'){
+      if(sIdx===1 && isOpen){
+        applyRoot({string:1, open:true, label:'A', root:true});
+      } else {
+        setMsg('Fast – klicke links vom 1. Bund oder auf das A-Label. 💡 Hinweis hilft weiter.', 'bad');
+      }
+    } else if(quiz.type==='C_over_G'){
+      if(sIdx===0 && !isOpen && cellIdx===2){
+        var spec = Array.isArray(window._chordSpec) ? window._chordSpec.slice() : [];
+        spec = spec.filter(function(p){ return !p.root; });
+        var hasA3C = spec.some(function(p){ return p.string===1 && p.fret===2; });
+        if(!hasA3C){ spec.push({string:1, fret:2, label:'C'}); }
+        spec.push({string:0, fret:2, label:'G', root:true});
+        drawSpec(spec);
+        setMsg('Richtig! Grundton G (E3). C auf A3 bleibt sichtbar.', 'good');
+        quiz.active = false;
+      } else {
+        if(sIdx===0){
+          setMsg('Fast – klicke auf den 3. Bund der E‑Saite. 💡 Hinweis hilft weiter.', 'bad');
+        } else {
+          setMsg('Nicht ganz – 💡 Hinweis hilft weiter.', 'bad');
+        }
+      }
+    }}
+
+  if(btnCH) btnCH.addEventListener('click', function(){ startQuiz('C_over_H'); });
+  if(btnCA) btnCA.addEventListener('click', function(){ startQuiz('C_over_A'); });
+  if(btnCG) btnCG.addEventListener('click', function(){ startQuiz('C_over_G'); });
+  if(btnHint) btnHint.addEventListener('click', showHint);
+  if(board && !board.__quizBound){
+    board.addEventListener('click', onBoardClick);
+    board.__quizBound = true;
+  }
+})();
+</script>
+<script id="cg-variation-script">
+(function(){
+  var btn = document.getElementById('btn-cg-variation');
+  var board = document.getElementById('board2');
+  var badges = document.getElementById('badges2');
+  var on = false;
+  var ro = null;
+
+  function ensureBadgeLayer(){
+    if(!badges){
+      badges = document.createElement('div');
+      badges.id = 'badges2';
+      badges.className = 'markers';
+      if(board && board.appendChild) board.appendChild(badges);
+    }
+  }
+  function clearBadges(){ if(badges) badges.innerHTML=''; }
+
+  function drawSpec(spec){
+    window._chordSpec = spec;
+    if(typeof window._drawChord==='function') window._drawChord(window._chordSpec);
+  }
+
+  function getRects(){
+    var br = board.getBoundingClientRect();
+    var frets = Array.prototype.slice.call(document.querySelectorAll('#frets2 .fret'));
+    var strings = Array.prototype.slice.call(document.querySelectorAll('#strings2 .string'));
+    return { br: br, frets: frets, strings: strings };
+  }
+  function fretCenterX(R, idx){
+    var r = R.frets[idx].getBoundingClientRect();
+    return (r.left + r.right)/2 - R.br.left;
+  }
+  function stringCenterY(R, idx){
+    var r = R.strings[idx].getBoundingClientRect();
+    return (r.top + r.bottom)/2 - R.br.top;
+  }
+
+  function drawBigX_A3(){
+    ensureBadgeLayer();
+    clearBadges();
+    var R = getRects();
+    if(!R.frets.length || R.strings.length!==6) return;
+    var x = fretCenterX(R, 1); // 3. Bund
+    var y = stringCenterY(R, 1); // A-Saite
+    var d = document.createElement('div');
+    d.className = 'bigx';
+    d.textContent = '×';
+    d.style.left = x + 'px';
+    d.style.top  = y + 'px';
+    badges.appendChild(d);
+  }
+
+  function cgVarOff(){
+    
+    (function(){
+      var main = document.getElementById('chords-quiz-msg');
+      if(main){ main.classList.remove('hidden'); }
+      var vm = document.getElementById('cg-variation-msg');
+      if(vm){ vm.textContent=''; vm.classList.remove('good','bad'); }
+    })();
+on = false;
+    if(btn) btn.textContent = 'C/G: Variation anzeigen';
+    clearBadges();
+    if(ro){ try{ ro.disconnect(); }catch(e){} ro = null; 
+    (function(){ var vm = document.getElementById('cg-variation-msg'); if(vm){ vm.textContent=''; vm.classList.remove('good','bad'); } })();
+}
+  }
+  window._cgVarOff = cgVarOff;   // expose globally (used by quiz + example button)
+  window._cgVarIsOn = function(){ return !!on; };
+
+  function toggleVariation(){
+    on = !on;
+    if(btn) btn.textContent = on ? 'C/G: Variation ausblenden' : 'C/G: Variation anzeigen';
+
+    var spec = Array.isArray(window._chordSpec) ? window._chordSpec.slice() : [];
+    // ensure C/G base (G on E3 as root)
+    var hasGroot = spec.some(function(p){ return p.root && p.string===0 && p.fret===2; });
+    if(!hasGroot){
+      spec = spec.filter(function(p){ return !p.root; });
+      var hasA3C = spec.some(function(p){ return p.string===1 && p.fret===2; });
+      if(!hasA3C){ spec.push({string:1, fret:2, label:'C'}); }
+      spec.push({string:0, fret:2, label:'G', root:true});
+    }
+
+    if(on){
+      // Remove A3 C marker and show big X on A3
+      spec = spec.filter(function(p){ return !(p.string===1 && p.fret===2 && !p.root); });
+      drawSpec(spec);
+      drawBigX_A3();
+      (function(){
+        var vm = document.getElementById('cg-variation-msg');
+        if(vm){ vm.textContent = 'Bei dieser Variation wird die A Saite nicht gespielt'; vm.classList.remove('bad'); vm.classList.add('good'); var main = document.getElementById('chords-quiz-msg'); if(main){ main.classList.add('hidden'); } }
+      })();
+      (function(){
+        var msg = document.getElementById('cg-variation-msg');
+        if(msg){ msg.textContent = 'Bei dieser Variation wird die A Saite nicht gespielt'; msg.classList.remove('bad'); msg.classList.add('good'); }
+      })();
+      if('ResizeObserver' in window && board){
+        if(ro) try{ ro.disconnect(); }catch(e){}
+        ro = new ResizeObserver(function(){ if(on) drawBigX_A3(); });
+        ro.observe(board);
+      }else{
+        var _rs = function(){ if(!on){ window.removeEventListener('resize', _rs); } else { drawBigX_A3(); } };
+        window.addEventListener('resize', _rs);
+      }
+    } else {
+      // Variation off: clear X and restore C on A3
+      cgVarOff();
+      var hasA3C2 = spec.some(function(p){ return p.string===1 && p.fret===2; });
+      if(!hasA3C2){ spec.push({string:1, fret:2, label:'C'}); }
+      drawSpec(spec);
+    }
+  }
+
+  if(btn) btn.addEventListener('click', toggleVariation);
+
+  // Also clear variation when Example (Beispiel C-Dur) is clicked
+  var ex = document.getElementById('btn-chord-c');
+  if(ex){ if(ex.hasAttribute('data-static')){ /* example button is static/inert */ } else 
+    ex.addEventListener('click', function(){
+      if(window._cgVarOff) window._cgVarOff();
+    });
+  }
+})();
+</script>
+<script id="cg-variation-relocate">
+document.addEventListener('DOMContentLoaded', function(){
+  var board = document.getElementById('board2');
+  var actions = document.getElementById('cg-variation-actions');
+  if(board && actions && board.contains(actions)){
+    board.insertAdjacentElement('afterend', actions);
+  }
+});
+</script>
+<script id="cg-variation-relocate-2">
+document.addEventListener('DOMContentLoaded', function(){
+  var actions = document.getElementById('cg-variation-actions');
+  var board = document.getElementById('board2');
+  if(!actions || !board) return;
+  // Find nearest ancestor with class 'board-wrap' that contains board2
+  var wrap = board;
+  while(wrap && !(wrap.classList && wrap.classList.contains('board-wrap'))) wrap = wrap.parentElement;
+  if(wrap && wrap.contains(actions)) {
+    wrap.insertAdjacentElement('afterend', actions);
+  }
+});
+</script>
+<script id="cg-variation-relocate-3">
+document.addEventListener('DOMContentLoaded', function(){
+  var actions = document.getElementById('cg-variation-actions');
+  var board = document.getElementById('board2');
+  if(!actions || !board) return;
+  var wrap = board.closest('.board-wrap, .fretboard, .board, [class*="board"], [id*="board-wrap"]');
+  if(wrap && wrap.parentElement){
+    // Place actions directly after the wrap
+    if(wrap.nextSibling !== actions){
+      wrap.insertAdjacentElement('afterend', actions);
+    }
+  } else {
+    // fallback after board2
+    if(board.nextSibling !== actions){
+      board.insertAdjacentElement('afterend', actions);
+    }
+  }
+});
+</script>
+<script id="chords-default-onload">
+document.addEventListener('DOMContentLoaded', function(){
+  var chords = document.getElementById('chords-screen');
+  if (!chords) return;
+  var visible = chords.style.display !== 'none';
+  if (visible && typeof window.markChordC === 'function'){
+    try { window._cgVarOff && window._cgVarOff(); } catch(e){}
+    window.markChordC();
+  }
+});
+</script>
+<script id="expiry-js">
+(function(){
+  function applyExpiredUI(){
+    var start = document.getElementById('start-screen');
+    if(!start) return;
+    start.classList.add('expired');
+    // additionally hard-disable clicks (keyboard & programmatic)
+    var blockers = start.querySelectorAll('a[href^="#"], [data-target], button, [role="button"]');
+    blockers.forEach(function(el){
+      el.setAttribute('aria-disabled','true');
+      el.tabIndex = -1;
+      el.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); }, {capture:true, passive:false});
+    });
+  }
+  function checkExpiry(){
+    try{
+      var dateStr = (window.APP_CONFIG && window.APP_CONFIG.expiryCutoff) || '2026-03-31T00:00:00';
+      var cutoff = new Date(dateStr);
+      var now = new Date();
+      if(now >= cutoff){
+        localStorage.setItem('appExpired','1');
+      } else {
+        localStorage.removeItem('appExpired');
+      }
+      if(localStorage.getItem('appExpired') === '1'){
+        applyExpiredUI();
+      }
+    }catch(e){ /* fail-safe: do nothing */ }
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', checkExpiry);
+  }else{
+    checkExpiry();
+  }
+})();
+</script>
+<script id="label-focus-blur">
+document.addEventListener('DOMContentLoaded', function(){
+  var board = document.getElementById('board2');
+  if(!board) return;
+  board.addEventListener('click', function(e){
+    var t = e.target;
+    if(!t) return;
+    if(t.matches('a,button,[role="button"],.label,.string-label,.open-label,[data-role="label"],[data-label]')){
+      // Defer blur to after click handlers
+      setTimeout(function(){ try{ t.blur && t.blur(); }catch(_){} }, 0);
+    }
+  }, true);
+  board.addEventListener('touchend', function(e){
+    var t = e.target;
+    if(!t) return;
+    if(t.matches('a,button,[role="button"],.label,.string-label,.open-label,[data-role="label"],[data-label]')){
+      setTimeout(function(){ try{ t.blur && t.blur(); }catch(_){} }, 0);
+    }
+  }, true);
+});
+</script>
+<script id="label-focus-blur-board1">
+document.addEventListener('DOMContentLoaded', function(){
+  var board = document.getElementById('board');
+  var labels = document.getElementById('labels-left');
+  function attachBlur(root){
+    if(!root) return;
+    root.addEventListener('click', function(e){
+      var t = e.target;
+      if(!t) return;
+      if(t.closest('.label,[data-role="label"],[data-label]')){
+        setTimeout(function(){ try{ t.blur && t.blur(); }catch(_){} }, 0);
+      }
+    }, true);
+    root.addEventListener('touchend', function(e){
+      var t = e.target;
+      if(!t) return;
+      if(t.closest('.label,[data-role="label"],[data-label]')){
+        setTimeout(function(){ try{ t.blur && t.blur(); }catch(_){} }, 0);
+      }
+    }, true);
+  }
+  attachBlur(board);
+  attachBlur(labels);
+});
+</script>
+<script id="scale-label-active-fix">
+document.addEventListener('DOMContentLoaded', function(){
+  var area = document.getElementById('scale-screen');
+  if(!area) return;
+
+  function isLabel(el){
+    return !!(el && (el.classList && el.classList.contains('label') ||
+                     el.getAttribute && (el.getAttribute('data-role')==='label' || el.hasAttribute('data-label'))));
+  }
+
+  function lockBg(ev){
+    var t = ev.target.closest ? ev.target.closest('.label,[data-role="label"],[data-label]') : ev.target;
+    if(!isLabel(t)) return;
+    try{
+      var bg = window.getComputedStyle(t).backgroundColor;
+      t.dataset._bgLock = bg;
+      t.style.backgroundColor = bg; // inline wins over :active state
+    }catch(_){}
+  }
+  function unlockBg(ev){
+    var t = ev.target.closest ? ev.target.closest('.label,[data-role="label"],[data-label]') : ev.target;
+    if(!isLabel(t)) return;
+    // defer removing inline style to after click completes
+    setTimeout(function(){ try{ t.style.backgroundColor = ''; }catch(_){ } }, 0);
+  }
+
+  // Use pointer events when supported
+  if(window.PointerEvent){
+    area.addEventListener('pointerdown', lockBg, true);
+    area.addEventListener('pointerup', unlockBg, true);
+    area.addEventListener('pointercancel', unlockBg, true);
+    area.addEventListener('pointerleave', unlockBg, true);
+  }else{
+    area.addEventListener('mousedown', lockBg, true);
+    area.addEventListener('mouseup', unlockBg, true);
+    area.addEventListener('mouseleave', unlockBg, true);
+    area.addEventListener('touchstart', function(e){ if(e.target){ lockBg(e); } }, {capture:true, passive:true});
+    area.addEventListener('touchend', function(e){ if(e.target){ unlockBg(e); } }, {capture:true, passive:true});
+    area.addEventListener('touchcancel', function(e){ if(e.target){ unlockBg(e); } }, {capture:true, passive:true});
+  }
+});
+</script>
+</body>
+</html>

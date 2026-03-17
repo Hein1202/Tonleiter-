@@ -665,7 +665,7 @@ window.APP_CONFIG.expiryCutoff = '2026-03-31T00:00:00';
 <div aria-hidden="true" class="confetti" id="confetti"></div>
 <!-- Startseite -->
 <section id="start-screen">
-<div class="version">© H.G. v113.10.25</div>
+<div class="version">© H.G. v173.03.26</div>
 <h1 class="fade-in delay-1">Hallo, ihr Lieben! 🎸</h1>
 <div id="expiry-warning">⚠️ <strong>Diese Version war bis Ende März 2026 gültig.</strong><br/>Bitte kontaktiert H.G. für eine aktuelle Version.</div>
 <p>Passend zu unserem Gitarrenkurs lernt ihr hier, die Töne auf dem Griffbrett bis zum 5. Bund zu finden. Ideal, um Akkorde wie C/H besser zu verstehen und gezielt nach den Tönen zu suchen.</p>
@@ -1115,30 +1115,22 @@ window.APP_CONFIG.expiryCutoff = '2026-03-31T00:00:00';
       const leftLabels = document.querySelectorAll('#labels-left .label');
       if(!leftLabels.length) return;
       /*
-       * Bind the handlers on pointerdown instead of click so that on touch
-       * devices the tones and highlighting appear immediately when a user
-       * presses the label. Using click alone delays execution until the
-       * pointer is released, which prevented the active background from
-       * becoming visible on some devices. See https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerdown_event
+       * Für kleine Touch-Displays verwenden wir bewusst nur noch das click-Ereignis.
+       * Die frühere Kombination aus pointerdown + touchstart konnte auf einigen
+       * Smartphones/kleinen Screens zu doppelten oder verschluckten Eingaben führen.
+       * click ist hier robuster und funktioniert auf Desktop und Touch-Geräten
+       * zuverlässig.
        */
       function addHandler(el, handler){
         el.classList.add('clickable');
-        // pointerdown triggers earlier than click and works with both mouse and touch
-        el.addEventListener('pointerdown', (evt)=>{
-          // prevent the subsequent click from firing a duplicate handler
-          evt.preventDefault();
-          // immediately apply the active class so the background appears on press
+        el.style.touchAction = 'manipulation';
+        el.addEventListener('click', ()=>{
           const idx = Array.prototype.indexOf.call(leftLabels, el);
-          if (typeof setActiveLabelByIndex === 'function') setActiveLabelByIndex(idx);
+          if (typeof setActiveLabelByIndex === 'function') {
+            setActiveLabelByIndex(idx);
+          }
           handler();
         });
-        // also fallback to touchstart for older browsers without pointer events
-        el.addEventListener('touchstart', (evt)=>{
-          evt.preventDefault();
-          const idx = Array.prototype.indexOf.call(leftLabels, el);
-          if (typeof setActiveLabelByIndex === 'function') setActiveLabelByIndex(idx);
-          handler();
-        }, {passive:false});
       }
       // tiefe E‑Saite (Index 0)
       addHandler(leftLabels[0], toggleLowE_FGA);
@@ -1157,16 +1149,13 @@ window.APP_CONFIG.expiryCutoff = '2026-03-31T00:00:00';
       addHandler(leftLabels[5], ()=>toggleHighE_FGA());
     })();
 
-    // Immediately highlight a string label on pointer/touch down.  On touch
-    // devices the built-in click event fires only on touchend, so users
-    // wouldn’t see the selection until after lifting their finger.  This
-    // listener applies the active class as soon as the user touches or presses
-    // down on a label, matching the expected behaviour on desktop and mobile.
+    // Hinweis: Die String-Labels werden nun bewusst nur noch über click
+    // gebunden. Das ist auf kleineren Touch-Displays robuster als die frühere
+    // Kombination aus pointerdown und touchstart.
     /*
-     * Note: Touch/pointer handlers for the left string labels are now bound in
-     * bindLeftLabelClicks() so that the label becomes active and the
-     * associated notes are displayed immediately on pointer down. The
-     * previous bindLeftLabelTouchHighlights() helper is no longer needed.
+     * bindLeftLabelClicks() übernimmt die komplette Anbindung der linken
+     * String-Labels. Zusätzliche Touch-/Pointer-Doppelbindungen werden nicht
+     * mehr verwendet.
      */
 
   

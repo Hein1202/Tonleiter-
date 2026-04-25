@@ -489,7 +489,7 @@
 <script id="app-config">
 // ✏️ Änderung hier: Ablaufdatum einstellen (ISO-Format YYYY-MM-DDTHH:mm:ss)
 window.APP_CONFIG = window.APP_CONFIG || {};
-window.APP_CONFIG.expiryCutoff = '2026-03-31T00:00:00';
+window.APP_CONFIG.expiryCutoff = '2026-12-31T00:00:00';
 </script>
 <!-- Responsive marker repositioning for the fretboard (Spiel 2) -->
 <script id="fretboard-responsive-markers">
@@ -665,7 +665,7 @@ window.APP_CONFIG.expiryCutoff = '2026-03-31T00:00:00';
 <div aria-hidden="true" class="confetti" id="confetti"></div>
 <!-- Startseite -->
 <section id="start-screen">
-<div class="version">© H.G. v173.03.26</div>
+<div class="version">© H.G. v174.03.26</div>
 <h1 class="fade-in delay-1">Hallo, ihr Lieben! 🎸</h1>
 <div id="expiry-warning">⚠️ <strong>Diese Version war bis Ende März 2026 gültig.</strong><br/>Bitte kontaktiert H.G. für eine aktuelle Version.</div>
 <p>Passend zu unserem Gitarrenkurs lernt ihr hier, die Töne auf dem Griffbrett bis zum 5. Bund zu finden. Ideal, um Akkorde wie C/H besser zu verstehen und gezielt nach den Tönen zu suchen.</p>
@@ -1967,7 +1967,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   function checkExpiry(){
     try{
-      var dateStr = (window.APP_CONFIG && window.APP_CONFIG.expiryCutoff) || '2026-03-31T00:00:00';
+      var dateStr = (window.APP_CONFIG && window.APP_CONFIG.expiryCutoff) || '2026-12-31T00:00:00';
       var cutoff = new Date(dateStr);
       var now = new Date();
       if(now >= cutoff){
